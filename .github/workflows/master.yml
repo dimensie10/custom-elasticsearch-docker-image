@@ -1,0 +1,39 @@
+name: Release Charts
+
+on:
+  push:
+    branches:
+      - master
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+        with:
+          fetch-depth: 0
+
+      - name: Configure Git
+        run: |
+          git config user.name "$GITHUB_ACTOR"
+          git config user.email "$GITHUB_ACTOR@users.noreply.github.com"
+
+      - name: Install ConfD
+        run: |
+          wget https://github.com/kelseyhightower/confd/releases/download/v0.16.0/confd-0.16.0-linux-amd64
+          mkdir -p /opt/confd/bin
+          mv confd-0.16.0-linux-amd64 /opt/confd/bin/confd
+          chmod +x /opt/confd/bin/confd
+
+      - name: Publish Docker Images
+        run: ./publish-docker-images.sh
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          INCLUDE_FILTER: ${{ secrets.INCLUDE_FILTER }}
+          EXCLUDE_FILTER: ${{ secrets.EXCLUDE_FILTER }}
+          ARCHITECTURES: ${{ secrets.ARCHITECTURES }}
+          ES_PLUGINS: ${{ secrets.ES_PLUGINS }}
+          DEBUG: ${{ secrets.DEBUG }}
+          DRYRUN: ${{ secrets.DRYRUN }}
+          DRYRUN_ASSUME_EXISTING: ${{ secrets.DRYRUN_ASSUME_EXISTING }}

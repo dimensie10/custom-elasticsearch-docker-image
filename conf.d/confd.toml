@@ -1,0 +1,3 @@
+[template]
+src = "Dockerfile.tmpl"
+dest = "Dockerfile"

@@ -1,0 +1,5 @@
+FROM {{ getenv "ES_UPSTREAM_IMAGE_URL" }}
+
+{{- range (split (getenv "ES_PLUGINS") ",") }}
+RUN /usr/share/elasticsearch/bin/elasticsearch-plugin install --batch {{.}}
+{{- end }}
