@@ -106,9 +106,9 @@ DRYRUN=true
 
 as a Github Secret. Versions will be fetched and filtered, but these steps will show the commands that would be executed, instead of executing them:
 
-* docker build
-* docker login
-* docker push
+* `docker build`
+* `docker login`
+* `docker push`
 
 It will also show the `Dockerfile` that was generated. By default it will assume the docker image doesn't exist in the Github Packages docker repo. To make the script assume it does, set this:
 
