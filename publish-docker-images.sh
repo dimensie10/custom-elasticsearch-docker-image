@@ -94,7 +94,7 @@ function filter-out-already-existing-custom-es-docker-images () {
         cat - | while read VERSIONARCH ; do
             TMPFILEERR="${TMPFILE}.stderr"
             TMPFILEOUT="${TMPFILE}.stdout"
-            rm -f ${TMPFILEERR}
+            rm -f $TMPFILEERR $TMPFILEOUT ${TMPFILE}.stderr.* ${TMPFILE}.stdout.*
             curl --show-error -s -X GET https://docker.pkg.github.com/v2/${GITHUB_REPOSITORY}/elasticsearch/manifests/${VERSIONARCH} -u $GITHUB_ACTOR:$GITHUB_TOKEN 2>${TMPFILE}.stderr.curlerr | tee -a ${TMPFILE}.stdout.curl | jq '.errors | map(.code)[]' 1>$TMPFILEOUT 2>${TMPFILE}.stderr.jqerr
             if [ -n "$(cat ${TMPFILE}.stderr.curlerr)" ]; then
                 echo "error: curl failed with error:" >${TMPFILEERR}
@@ -138,30 +138,32 @@ function publish-docker-image () {
     export ES_UPSTREAM_IMAGE_URL="$2"
     local DRYRUN_ECHO=""
     echo "publishing ${ES_CUSTOM_IMAGE_URL} using FROM ${ES_UPSTREAM_IMAGE_URL}.."
+
     is_dryrun_mode && DRYRUN_ECHO="echo "
+
     echo "removing any existing Dockerfile.."
     rm -f Dockerfile
+
     echo "running '/opt/confd/bin/confd -onetime -confdir "." -backend env -config-file confd.toml'.."
-    set -e
-    /opt/confd/bin/confd -onetime -confdir "." -backend env -config-file confd.toml
-    set +e
-    echo "running 'docker build -t ${ES_CUSTOM_IMAGE_URL} .'.."
-    set -e
-    $DRYRUN_ECHO docker build -t $ES_CUSTOM_IMAGE_URL .
-    set +e
+    /opt/confd/bin/confd -onetime -confdir "." -backend env -config-file confd.toml || exit 1
     is_dryrun_mode && cat Dockerfile
+
+    echo "running 'docker build -t ${ES_CUSTOM_IMAGE_URL} .'.."
+    if ! $DRYRUN_ECHO docker build -t $ES_CUSTOM_IMAGE_URL . ; then
+        echo "error: running 'docker build -t ${ES_CUSTOM_IMAGE_URL} .' failed. Dockerfile contents:"
+        cat Dockerfile
+        exit 1
+    fi
+
     if is_dryrun_mode ; then
         echo docker login https://docker.pkg.github.com --username ${GITHUB_REPOSITORY_OWNER} --password-stdin
     else
         echo "running 'docker login https://docker.pkg.github.com --username ${GITHUB_REPOSITORY_OWNER} --password-stdin'.."
-        set -e
-        echo $GITHUB_TOKEN | docker login https://docker.pkg.github.com --username ${GITHUB_REPOSITORY_OWNER} --password-stdin
-        set +e
+        echo $GITHUB_TOKEN | docker login https://docker.pkg.github.com --username ${GITHUB_REPOSITORY_OWNER} --password-stdin || exit 1
     fi
+
     echo "running 'docker push $ES_CUSTOM_IMAGE_URL'.."
-    set -e
-    $DRYRUN_ECHO docker push $ES_CUSTOM_IMAGE_URL
-    set +e
+    $DRYRUN_ECHO docker push $ES_CUSTOM_IMAGE_URL || exit 1
 }
 
 function publish-docker-images () {
