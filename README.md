@@ -45,6 +45,7 @@ Environment variable | Default | Source
 `DEBUG` | *undefined* | `secrets.DEBUG`
 `DRYRUN` | *undefined* | `secrets.DRYRUN`
 `DRYRUN_ASSUME_EXISTING` | *undefined* | `secrets.DRYRUN_ASSUME_EXISTING`
+`VERBOSE` | *undefined* | `secrets.VERBOSE`
 
 ### Configuration
 
@@ -87,6 +88,16 @@ Alternatively, `ES_PLUGINS` Github Secret can contain a comma separated (without
 Architectures can be configured in `architectures.txt`, one per line. By default only `amd64` is built for. This can also be specified using the `ARCHITECTURES` Github Secret, comma separated without spaces.
 
 ## Debugging
+
+### Verbose Mode
+
+You can enable verbose mode by setting:
+
+```
+VERBOSE=true
+```
+
+as a Github Secret. It will communicate about the various commands it's executing.
 
 ### Debug Mode
 

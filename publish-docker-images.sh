@@ -1,24 +1,28 @@
 #!/usr/bin/env bash
 
-echo "defining TMPFILE.."
+echo "defining TMPFILE.." >&4
 TMPFILE="/tmp/.$(basename "$0").$(date +"%Y%m%d%H%M%S.%N").tmp"
-echo "defining INCLUDE_FILTER.."
+echo "defining INCLUDE_FILTER.." >&4
 INCLUDE_FILTER="${INCLUDE_FILTER:-$(cat include_filter.txt)}"
-echo "defining EXCLUDE_FILTER.."
+echo "defining EXCLUDE_FILTER.." >&4
 EXCLUDE_FILTER="${EXCLUDE_FILTER:-$(cat exclude_filter.txt)}"
-echo "defining ARCHITECTURES.."
+echo "defining ARCHITECTURES.." >&4
 ARCHITECTURES="${ARCHITECTURES:-$(cat architectures.txt | perl -p -e 's#\n#,#;' | perl -p -e 's#,$##;')}"
-echo "defining ARCHITECTURE_SUPPORT_REGEX.."
+echo "defining ARCHITECTURE_SUPPORT_REGEX.." >&4
 ARCHITECTURE_SUPPORT_REGEX="${ARCHITECTURE_SUPPORT_REGEX:-$(cat architecture_support_regex.txt)}"
-echo "defining UPSTREAM_BASE_URL.."
+echo "defining UPSTREAM_BASE_URL.." >&4
 export UPSTREAM_BASE_URL="docker.elastic.co/elasticsearch/elasticsearch"
-echo "defining CUSTOM_BASE_URL.."
+echo "defining CUSTOM_BASE_URL.." >&4
 export CUSTOM_BASE_URL="docker.pkg.github.com/${GITHUB_REPOSITORY}/elasticsearch"
-echo "defining ES_PLUGINS.."
+echo "defining ES_PLUGINS.." >&4
 export ES_PLUGINS="${ES_PLUGINS:-$(cat plugins.txt | perl -p -e 's#\n#,#;' | perl -p -e 's#,$##;')}"
 
 function cleanup () {
     rm -f $TMPFILE ${TMPFILE}.stderr ${TMPFILE}.stdout ${TMPFILE}.stderr.* ${TMPFILE}.stdout.*
+}
+
+function is_verbose_mode () {
+    [ -n "$VERBOSE" -a "$VERBOSE" = "true" ]
 }
 
 function is_debug_mode () {
@@ -126,7 +130,7 @@ function filter-out-already-existing-custom-es-docker-images () {
 function dryrun-filter-out-already-existing-custom-es-docker-images () {
     if is_dryrun_mode ; then
         cat - | while read VERSIONARCH ; do
-            echo "running 'curl -s -X GET https://docker.pkg.github.com/v2/${GITHUB_REPOSITORY}/elasticsearch/manifests/${VERSIONARCH} -u $GITHUB_ACTOR:$GITHUB_TOKEN | jq -r '.''.."
+            echo "running 'curl -s -X GET https://docker.pkg.github.com/v2/${GITHUB_REPOSITORY}/elasticsearch/manifests/${VERSIONARCH} -u $GITHUB_ACTOR:$GITHUB_TOKEN | jq -r '.''.." >&4
             curl -s -X GET https://docker.pkg.github.com/v2/${GITHUB_REPOSITORY}/elasticsearch/manifests/${VERSIONARCH} -u $GITHUB_ACTOR:$GITHUB_TOKEN | jq -r '.'
         done
     fi
@@ -137,82 +141,88 @@ function publish-docker-image () {
     local ES_CUSTOM_IMAGE_URL="$1"
     export ES_UPSTREAM_IMAGE_URL="$2"
     local DRYRUN_ECHO=""
-    echo "publishing ${ES_CUSTOM_IMAGE_URL} using FROM ${ES_UPSTREAM_IMAGE_URL}.."
+    echo "publishing ${ES_CUSTOM_IMAGE_URL} using FROM ${ES_UPSTREAM_IMAGE_URL}.." >&4
 
     is_dryrun_mode && DRYRUN_ECHO="echo "
 
-    echo "removing any existing Dockerfile.."
+    echo "removing any existing Dockerfile.." >&4
     rm -f Dockerfile
 
-    echo "running '/opt/confd/bin/confd -onetime -confdir "." -backend env -config-file confd.toml'.."
+    echo "running '/opt/confd/bin/confd -onetime -confdir "." -backend env -config-file confd.toml'.." >&4
     /opt/confd/bin/confd -onetime -confdir "." -backend env -config-file confd.toml || exit 1
     is_dryrun_mode && cat Dockerfile
 
-    echo "running 'docker build -t ${ES_CUSTOM_IMAGE_URL} .'.."
+    echo "running 'docker build -t ${ES_CUSTOM_IMAGE_URL} .'.." >&4
     if ! $DRYRUN_ECHO docker build -t $ES_CUSTOM_IMAGE_URL . ; then
-        echo "error: running 'docker build -t ${ES_CUSTOM_IMAGE_URL} .' failed. Dockerfile contents:"
-        cat Dockerfile
+        echo "error: running 'docker build -t ${ES_CUSTOM_IMAGE_URL} .' failed. Dockerfile contents:" >&2
+        cat Dockerfile >&2
         exit 1
     fi
 
     if is_dryrun_mode ; then
         echo docker login https://docker.pkg.github.com --username ${GITHUB_REPOSITORY_OWNER} --password-stdin
     else
-        echo "running 'docker login https://docker.pkg.github.com --username ${GITHUB_REPOSITORY_OWNER} --password-stdin'.."
+        echo "running 'docker login https://docker.pkg.github.com --username ${GITHUB_REPOSITORY_OWNER} --password-stdin'.." >&4
         echo $GITHUB_TOKEN | docker login https://docker.pkg.github.com --username ${GITHUB_REPOSITORY_OWNER} --password-stdin || exit 1
     fi
 
-    echo "running 'docker push $ES_CUSTOM_IMAGE_URL'.."
+    echo "running 'docker push $ES_CUSTOM_IMAGE_URL'.." >&4
     $DRYRUN_ECHO docker push $ES_CUSTOM_IMAGE_URL || exit 1
 }
 
 function publish-docker-images () {
     dryrun-filter-out-already-existing-custom-es-docker-images
-    echo "running publish-docker-images.."
+    echo "running publish-docker-images.." >&4
     cat - | while read VERSIONARCH ; do
-        echo "running publish-docker-image for ${VERSIONARCH}.."
+        echo "running publish-docker-image for ${VERSIONARCH}.." >&4
         publish-docker-image "${CUSTOM_BASE_URL}:${VERSIONARCH}" "${UPSTREAM_BASE_URL}:${VERSIONARCH}" ;
     done
     return 0
 }
 
-echo "checking if plugins are configured to be installed.."
+if is_verbose_mode ; then
+    exec 4>&2
+else
+    exec 4>/dev/null
+fi
+
+echo "checking if plugins are configured to be installed.." >&4
 if [ -z "${ES_PLUGINS}" ]; then
-    echo "error: no plugins defined to install, exiting.."
+    echo "error: no plugins defined to install, exiting.." >&2
     exit 1
 fi
 
-echo "checking if debug_mode is enabled.."
+echo "checking if debug_mode is enabled.." >&4
 if is_debug_mode ; then
-    echo "running debug_mode"
+    echo "running debug_mode" >&4
     case $DEBUG in
         step1) 
-            echo "running get-all-tags-with-commits..";
+            echo "running get-all-tags-with-commits.." >&4;
             get-all-tags-with-commits;;
         step2) 
-            echo "running get-all-tags..";
+            echo "running get-all-tags.." >&4;
             get-all-tags;;
         step3) 
-            echo "running convert-tags-to-versions..";
+            echo "running convert-tags-to-versions.." >&4;
             convert-tags-to-versions;;
         step4) 
-            echo "running apply-include-filter-on-versions..";
+            echo "running apply-include-filter-on-versions.." >&4;
             apply-include-filter-on-versions;;
         step5) 
-            echo "running get-elasticsearch-versions-to-process..";
+            echo "running get-elasticsearch-versions-to-process.." >&4;
             get-elasticsearch-versions-to-process;;
         step6) 
-            echo "running get-elasticsearch-versions-to-process | multiply-by-architecture..";
+            echo "running get-elasticsearch-versions-to-process | multiply-by-architecture.." >&4;
             get-elasticsearch-versions-to-process | multiply-by-architecture;;
         step7) 
-            echo "running get-elasticsearch-versions-to-process | multiply-by-architecture | filter-out-already-existing-custom-es-docker-images..";
+            echo "running get-elasticsearch-versions-to-process | multiply-by-architecture | filter-out-already-existing-custom-es-docker-images.." >&4;
             get-elasticsearch-versions-to-process | multiply-by-architecture | filter-out-already-existing-custom-es-docker-images;;
         *)
-            echo "error: you must specify one of: [step1,step2,step3,step4,step5,step6,step7] for DEBUG environment variable. Exiting."
+            echo "error: you must specify one of: [step1,step2,step3,step4,step5,step6,step7] for DEBUG environment variable. Exiting." >&2
             exit 1;;
     esac
 else
-    echo "running get-elasticsearch-versions-to-process | multiply-by-architecture | filter-out-already-existing-custom-es-docker-images.."
+    echo "running get-elasticsearch-versions-to-process | multiply-by-architecture | filter-out-already-existing-custom-es-docker-images.." >&4
     get-elasticsearch-versions-to-process |
         multiply-by-architecture |
         filter-out-already-existing-custom-es-docker-images |

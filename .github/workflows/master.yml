@@ -27,7 +27,7 @@ jobs:
           chmod +x /opt/confd/bin/confd
 
       - name: Publish Docker Images
-        run: ./publish-docker-images.sh
+        run: stdbuf -oL -eL ./publish-docker-images.sh
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           INCLUDE_FILTER: ${{ secrets.INCLUDE_FILTER }}
@@ -37,3 +37,4 @@ jobs:
           DEBUG: ${{ secrets.DEBUG }}
           DRYRUN: ${{ secrets.DRYRUN }}
           DRYRUN_ASSUME_EXISTING: ${{ secrets.DRYRUN_ASSUME_EXISTING }}
+          VERBOSE: ${{ secrets.VERBOSE }}
