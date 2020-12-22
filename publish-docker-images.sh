@@ -90,6 +90,16 @@ function filter-out-already-existing-custom-es-docker-images () {
     return 0
 }
 
+function dryrun-filter-out-already-existing-custom-es-docker-images () {
+    if is_dryrun_mode ; then
+        cat - | while read VERSION ARCH ; do
+            echo "running 'curl -s -X GET https://docker.pkg.github.com/v2/${GITHUB_REPOSITORY}/elasticsearch/manifests/${VERSION}-${ARCH} -u $GITHUB_ACTOR:$GITHUB_TOKEN | jq -r '.''.."
+            curl -s -X GET https://docker.pkg.github.com/v2/${GITHUB_REPOSITORY}/elasticsearch/manifests/${VERSION}-${ARCH} -u $GITHUB_ACTOR:$GITHUB_TOKEN | jq -r '.'
+        done
+    fi
+    return 0
+}
+
 function publish-docker-image () {
     local VERSION="$1"
     local ARCH="$2"
@@ -122,8 +132,10 @@ function publish-docker-image () {
 }
 
 function publish-docker-images () {
+    dryrun-filter-out-already-existing-custom-es-docker-images
     echo "running publish-docker-images.."
     cat - | while read VERSION ARCH ; do
+        echo "running publish-docker-image for version ${VERSION} and arch ${ARCH}.."
         publish-docker-image $VERSION $ARCH "${CUSTOM_BASE_URL}:${VERSION}-${ARCH}" "${UPSTREAM_BASE_URL}:${VERSION}-${ARCH}" ;
     done
     return 0
