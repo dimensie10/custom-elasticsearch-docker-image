@@ -38,3 +38,11 @@ jobs:
           DRYRUN: ${{ secrets.DRYRUN }}
           DRYRUN_ASSUME_EXISTING: ${{ secrets.DRYRUN_ASSUME_EXISTING }}
           VERBOSE: ${{ secrets.VERBOSE }}
+          CUSTOM_BASE_URL_OVERRIDE: ${{ secrets.CUSTOM_BASE_URL_OVERRIDE }}
+          EXTERNAL_LOGIN: ${{ secrets.EXTERNAL_LOGIN }}
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          ECR_AWS_ACCOUNT_ID: ${{ secrets.ECR_AWS_ACCOUNT_ID }}
+          ECR_AWS_REGION: ${{ secrets.ECR_AWS_REGION }}
+          ECR_REPOSITORY_NAME: ${{ secrets.ECR_REPOSITORY_NAME }}
+          USE_AMAZON_ECR: ${{ secrets.USE_AMAZON_ECR }}
