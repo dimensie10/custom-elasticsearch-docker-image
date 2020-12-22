@@ -98,8 +98,8 @@ function filter-out-already-existing-custom-es-docker-images () {
                 cat "${TMPFILE}.stderr.jqerr" >>${TMPFILEERR}
                 echo "curl output:" >>${TMPFILEERR}
                 cat "${TMPFILE}.stdout.curl" >>${TMPFILEERR}
-            elif [ -n "$(cat $TMPFILEOUT | grep -v -e MANIFEST_UNKNOWN)" ]; then
-                echo "error: unrecognized error code(s) detected: $(cat $TMPFILEOUT | grep -v -e MANIFEST_UNKNOWN | sort | uniq | perl -p -e 's#\n#,#;' | perl -p -e 's#,$##;')" >${TMPFILEERR}
+            elif [ -n "$(cat $TMPFILEOUT | grep -v -e MANIFEST_UNKNOWN -e NAME_UNKNOWN)" ]; then
+                echo "error: unrecognized error code(s) detected: $(cat $TMPFILEOUT | grep -v -e MANIFEST_UNKNOWN -e NAME_UNKNOWN | sort | uniq | perl -p -e 's#\n#,#;' | perl -p -e 's#,$##;')" >${TMPFILEERR}
                 echo "curl output:" >>${TMPFILEERR}
                 cat "${TMPFILE}.stdout.curl" >>${TMPFILEERR}
             elif [ -n "$(cat $TMPFILEOUT)" ]; then
