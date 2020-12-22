@@ -8,6 +8,8 @@ echo "defining EXCLUDE_FILTER.."
 EXCLUDE_FILTER="${EXCLUDE_FILTER:-$(cat exclude_filter.txt)}"
 echo "defining ARCHITECTURES.."
 ARCHITECTURES="${ARCHITECTURES:-$(cat architectures.txt | perl -p -e 's#\n#,#;' | perl -p -e 's#,$##;')}"
+echo "defining ARCHITECTURE_SUPPORT_REGEX.."
+ARCHITECTURE_SUPPORT_REGEX="${ARCHITECTURE_SUPPORT_REGEX:-$(cat architecture_support_regex.txt)}"
 echo "defining UPSTREAM_BASE_URL.."
 export UPSTREAM_BASE_URL="docker.elastic.co/elasticsearch/elasticsearch"
 echo "defining CUSTOM_BASE_URL.."
@@ -77,7 +79,11 @@ function get-elasticsearch-versions-to-process () {
 function multiply-by-architecture () {
     cat - | while read VERSION ; do
         for ARCHITECTURE in ${ARCHITECTURES//,/ } ; do
-            echo $VERSION $ARCHITECTURE ;
+            if [ -n "$(echo "${VERSION}" | grep -E -e "${ARCHITECTURE_SUPPORT_REGEX}")" ] ; then
+                echo "${VERSION}-${ARCHITECTURE}"
+            elif [ -n "$(cat architectures.txt | grep -E -e "amd64")" ] ; then
+                echo "$VERSION"
+            fi ;
         done ;
     done
     return 0
@@ -85,11 +91,11 @@ function multiply-by-architecture () {
 
 function filter-out-already-existing-custom-es-docker-images () {
     if ! is_dryrun_mode ; then
-        cat - | while read VERSION ARCH ; do
+        cat - | while read VERSIONARCH ; do
             TMPFILEERR="${TMPFILE}.stderr"
             TMPFILEOUT="${TMPFILE}.stdout"
             rm -f ${TMPFILEERR}
-            curl --show-error -s -X GET https://docker.pkg.github.com/v2/${GITHUB_REPOSITORY}/elasticsearch/manifests/${VERSION}-${ARCH} -u $GITHUB_ACTOR:$GITHUB_TOKEN 2>${TMPFILE}.stderr.curlerr | tee -a ${TMPFILE}.stdout.curl | jq '.errors | map(.code)[]' 1>$TMPFILEOUT 2>${TMPFILE}.stderr.jqerr
+            curl --show-error -s -X GET https://docker.pkg.github.com/v2/${GITHUB_REPOSITORY}/elasticsearch/manifests/${VERSIONARCH} -u $GITHUB_ACTOR:$GITHUB_TOKEN 2>${TMPFILE}.stderr.curlerr | tee -a ${TMPFILE}.stdout.curl | jq '.errors | map(.code)[]' 1>$TMPFILEOUT 2>${TMPFILE}.stderr.jqerr
             if [ -n "$(cat ${TMPFILE}.stderr.curlerr)" ]; then
                 echo "error: curl failed with error:" >${TMPFILEERR}
                 cat "${TMPFILE}.stderr.curlerr" >>${TMPFILEERR}
@@ -103,7 +109,7 @@ function filter-out-already-existing-custom-es-docker-images () {
                 echo "curl output:" >>${TMPFILEERR}
                 cat "${TMPFILE}.stdout.curl" >>${TMPFILEERR}
             elif [ -n "$(cat $TMPFILEOUT)" ]; then
-                echo ${VERSION} ${ARCH}
+                echo ${VERSIONARCH}
             fi
             if [ -e $TMPFILEERR ]; then
                 cat $TMPFILEERR >&2
@@ -119,19 +125,17 @@ function filter-out-already-existing-custom-es-docker-images () {
 
 function dryrun-filter-out-already-existing-custom-es-docker-images () {
     if is_dryrun_mode ; then
-        cat - | while read VERSION ARCH ; do
-            echo "running 'curl -s -X GET https://docker.pkg.github.com/v2/${GITHUB_REPOSITORY}/elasticsearch/manifests/${VERSION}-${ARCH} -u $GITHUB_ACTOR:$GITHUB_TOKEN | jq -r '.''.."
-            curl -s -X GET https://docker.pkg.github.com/v2/${GITHUB_REPOSITORY}/elasticsearch/manifests/${VERSION}-${ARCH} -u $GITHUB_ACTOR:$GITHUB_TOKEN | jq -r '.'
+        cat - | while read VERSIONARCH ; do
+            echo "running 'curl -s -X GET https://docker.pkg.github.com/v2/${GITHUB_REPOSITORY}/elasticsearch/manifests/${VERSIONARCH} -u $GITHUB_ACTOR:$GITHUB_TOKEN | jq -r '.''.."
+            curl -s -X GET https://docker.pkg.github.com/v2/${GITHUB_REPOSITORY}/elasticsearch/manifests/${VERSIONARCH} -u $GITHUB_ACTOR:$GITHUB_TOKEN | jq -r '.'
         done
     fi
     return 0
 }
 
 function publish-docker-image () {
-    local VERSION="$1"
-    local ARCH="$2"
-    local ES_CUSTOM_IMAGE_URL="$3"
-    export ES_UPSTREAM_IMAGE_URL="$4"
+    local ES_CUSTOM_IMAGE_URL="$1"
+    export ES_UPSTREAM_IMAGE_URL="$2"
     local DRYRUN_ECHO=""
     echo "publishing ${ES_CUSTOM_IMAGE_URL} using FROM ${ES_UPSTREAM_IMAGE_URL}.."
     is_dryrun_mode && DRYRUN_ECHO="echo "
@@ -163,9 +167,9 @@ function publish-docker-image () {
 function publish-docker-images () {
     dryrun-filter-out-already-existing-custom-es-docker-images
     echo "running publish-docker-images.."
-    cat - | while read VERSION ARCH ; do
-        echo "running publish-docker-image for version ${VERSION} and arch ${ARCH}.."
-        publish-docker-image $VERSION $ARCH "${CUSTOM_BASE_URL}:${VERSION}-${ARCH}" "${UPSTREAM_BASE_URL}:${VERSION}-${ARCH}" ;
+    cat - | while read VERSIONARCH ; do
+        echo "running publish-docker-image for ${VERSIONARCH}.."
+        publish-docker-image "${CUSTOM_BASE_URL}:${VERSIONARCH}" "${UPSTREAM_BASE_URL}:${VERSIONARCH}" ;
     done
     return 0
 }

@@ -4,6 +4,8 @@
 
 This repository is intended to be forked. It was created to ease the creation of custom Elasticsearch docker images, specifically for the installation of plugins. It uses Github Actions to automate extending Elasticsearch docker images with a configured set of plugins for a configured set of versions and architectures, and pushes the docker images to Github Packages. This way, nothing needs to happen locally, or on dedicated infrastructure for this process.
 
+Note: pre-7.8.0, architectures are not taken into account, since for those versions Elasticsearch hasn't published architecture specific images. If this repository is configured to handle any architecture except amd64, it will automatically not build any version pre-7.8.0.
+
 ## How It Works
 
 On each push to master, it:
