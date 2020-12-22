@@ -82,7 +82,7 @@ function filter-out-already-existing-custom-es-docker-images () {
             TMPFILEERR="${TMPFILE}.stderr"
             TMPFILEOUT="${TMPFILE}.stdout"
             rm -f $TMPFILEERR $TMPFILEOUT ${TMPFILE}.stderr.* ${TMPFILE}.stdout.*
-            curl --show-error -s -X GET https://docker.pkg.github.com/v2/${GITHUB_REPOSITORY}/elasticsearch/manifests/${VERSIONARCH} -u $GITHUB_ACTOR:$GITHUB_TOKEN 2>${TMPFILE}.stderr.curlerr | tee -a ${TMPFILE}.stdout.curl | jq '.errors | map(.code)[]' 1>$TMPFILEOUT 2>${TMPFILE}.stderr.jqerr
+            curl --show-error -s -X GET https://docker.pkg.github.com/v2/${GITHUB_REPOSITORY}/elasticsearch/manifests/${VERSIONARCH} -u $GITHUB_ACTOR:$GITHUB_TOKEN 2>${TMPFILE}.stderr.curlerr | tee -a ${TMPFILE}.stdout.curl | jq '(.errors // []) | map(.code)[]' 1>$TMPFILEOUT 2>${TMPFILE}.stderr.jqerr
             if [ -n "$(cat ${TMPFILE}.stderr.curlerr)" ]; then
                 echo "error: curl failed with error:" >${TMPFILEERR}
                 cat "${TMPFILE}.stderr.curlerr" >>${TMPFILEERR}
