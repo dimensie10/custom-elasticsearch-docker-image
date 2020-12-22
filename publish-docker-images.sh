@@ -1,22 +1,5 @@
 #!/usr/bin/env bash
 
-echo "defining TMPFILE.." >&4
-TMPFILE="/tmp/.$(basename "$0").$(date +"%Y%m%d%H%M%S.%N").tmp"
-echo "defining INCLUDE_FILTER.." >&4
-INCLUDE_FILTER="${INCLUDE_FILTER:-$(cat include_filter.txt)}"
-echo "defining EXCLUDE_FILTER.." >&4
-EXCLUDE_FILTER="${EXCLUDE_FILTER:-$(cat exclude_filter.txt)}"
-echo "defining ARCHITECTURES.." >&4
-ARCHITECTURES="${ARCHITECTURES:-$(cat architectures.txt | perl -p -e 's#\n#,#;' | perl -p -e 's#,$##;')}"
-echo "defining ARCHITECTURE_SUPPORT_REGEX.." >&4
-ARCHITECTURE_SUPPORT_REGEX="${ARCHITECTURE_SUPPORT_REGEX:-$(cat architecture_support_regex.txt)}"
-echo "defining UPSTREAM_BASE_URL.." >&4
-export UPSTREAM_BASE_URL="docker.elastic.co/elasticsearch/elasticsearch"
-echo "defining CUSTOM_BASE_URL.." >&4
-export CUSTOM_BASE_URL="docker.pkg.github.com/${GITHUB_REPOSITORY}/elasticsearch"
-echo "defining ES_PLUGINS.." >&4
-export ES_PLUGINS="${ES_PLUGINS:-$(cat plugins.txt | perl -p -e 's#\n#,#;' | perl -p -e 's#,$##;')}"
-
 function cleanup () {
     rm -f $TMPFILE ${TMPFILE}.stderr ${TMPFILE}.stdout ${TMPFILE}.stderr.* ${TMPFILE}.stdout.*
 }
@@ -185,6 +168,23 @@ if is_verbose_mode ; then
 else
     exec 4>/dev/null
 fi
+
+echo "defining TMPFILE.." >&4
+TMPFILE="/tmp/.$(basename "$0").$(date +"%Y%m%d%H%M%S.%N").tmp"
+echo "defining INCLUDE_FILTER.." >&4
+INCLUDE_FILTER="${INCLUDE_FILTER:-$(cat include_filter.txt)}"
+echo "defining EXCLUDE_FILTER.." >&4
+EXCLUDE_FILTER="${EXCLUDE_FILTER:-$(cat exclude_filter.txt)}"
+echo "defining ARCHITECTURES.." >&4
+ARCHITECTURES="${ARCHITECTURES:-$(cat architectures.txt | perl -p -e 's#\n#,#;' | perl -p -e 's#,$##;')}"
+echo "defining ARCHITECTURE_SUPPORT_REGEX.." >&4
+ARCHITECTURE_SUPPORT_REGEX="${ARCHITECTURE_SUPPORT_REGEX:-$(cat architecture_support_regex.txt)}"
+echo "defining UPSTREAM_BASE_URL.." >&4
+export UPSTREAM_BASE_URL="docker.elastic.co/elasticsearch/elasticsearch"
+echo "defining CUSTOM_BASE_URL.." >&4
+export CUSTOM_BASE_URL="docker.pkg.github.com/${GITHUB_REPOSITORY}/elasticsearch"
+echo "defining ES_PLUGINS.." >&4
+export ES_PLUGINS="${ES_PLUGINS:-$(cat plugins.txt | perl -p -e 's#\n#,#;' | perl -p -e 's#,$##;')}"
 
 echo "checking if plugins are configured to be installed.." >&4
 if [ -z "${ES_PLUGINS}" ]; then
