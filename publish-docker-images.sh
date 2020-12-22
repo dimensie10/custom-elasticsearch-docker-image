@@ -1,10 +1,16 @@
 #!/usr/bin/env bash
 
+echo "defining INCLUDE_FILTER.."
 INCLUDE_FILTER="${INCLUDE_FILTER:-$(cat include_filter.txt)}"
+echo "defining EXCLUDE_FILTER.."
 EXCLUDE_FILTER="${EXCLUDE_FILTER:-$(cat exclude_filter.txt)}"
+echo "defining ARCHITECTURES.."
 ARCHITECTURES="${ARCHITECTURES:-$(cat architectures.txt | perl -p -e 's#\n#,#;' | perl -p -e 's#,$##;')}"
+echo "defining UPSTREAM_BASE_URL.."
 export UPSTREAM_BASE_URL="docker.elastic.co/elasticsearch/elasticsearch"
+echo "defining CUSTOM_BASE_URL.."
 export CUSTOM_BASE_URL="docker.pkg.github.com/${GITHUB_REPOSITORY}/elasticsearch"
+echo "defining ES_PLUGINS.."
 export ES_PLUGINS="${ES_PLUGINS:-$(cat plugins.txt | perl -p -e 's#\n#,#;' | perl -p -e 's#,$##;')}"
 
 function is_debug_mode () {
@@ -90,58 +96,76 @@ function publish-docker-image () {
     local ES_CUSTOM_IMAGE_URL="$3"
     export ES_UPSTREAM_IMAGE_URL="$4"
     local DRYRUN_ECHO=""
+    echo "publishing ${ES_CUSTOM_IMAGE_URL} using FROM ${ES_UPSTREAM_IMAGE_URL}.."
     is_dryrun_mode && DRYRUN_ECHO="echo "
+    echo "removing any existing Dockerfile.."
     rm -f Dockerfile
     set -e
+    echo "running '/opt/confd/bin/confd -onetime -confdir "." -backend env -config-file confd.toml'.."
     /opt/confd/bin/confd -onetime -confdir "." -backend env -config-file confd.toml
+    echo "running 'docker build -t ${ES_CUSTOM_IMAGE_URL} .'.."
     $DRYRUN_ECHO docker build -t $ES_CUSTOM_IMAGE_URL .
     set +e
     is_dryrun_mode && cat Dockerfile
     if is_dryrun_mode ; then
-        set -e
         echo docker login https://docker.pkg.github.com --username ${GITHUB_REPOSITORY_OWNER} --password-stdin
-        set +e
     else
+        set -e
+        echo "running 'docker login https://docker.pkg.github.com --username ${GITHUB_REPOSITORY_OWNER} --password-stdin'.."
         echo $GITHUB_TOKEN | docker login https://docker.pkg.github.com --username ${GITHUB_REPOSITORY_OWNER} --password-stdin
+        set +e
     fi
     set -e
+    echo "running 'docker push $ES_CUSTOM_IMAGE_URL'.."
     $DRYRUN_ECHO docker push $ES_CUSTOM_IMAGE_URL
     set +e
 }
 
 function publish-docker-images () {
+    echo "running publish-docker-images.."
     cat - | while read VERSION ARCH ; do
         publish-docker-image $VERSION $ARCH "${CUSTOM_BASE_URL}:${VERSION}-${ARCH}" "${UPSTREAM_BASE_URL}:${VERSION}-${ARCH}" ;
     done
     return 0
 }
 
+echo "checking if plugins are configured to be installed.."
 if [ -z "${ES_PLUGINS}" ]; then
     echo "error: no plugins defined to install, exiting.."
     exit 1
 fi
 
+echo "checking if debug_mode is enabled.."
 if is_debug_mode ; then
+    echo "running debug_mode"
     case $DEBUG in
         step1) 
+            echo "running get-all-tags-with-commits..";
             get-all-tags-with-commits;;
         step2) 
+            echo "running get-all-tags..";
             get-all-tags;;
         step3) 
+            echo "running convert-tags-to-versions..";
             convert-tags-to-versions;;
         step4) 
+            echo "running apply-include-filter-on-versions..";
             apply-include-filter-on-versions;;
         step5) 
+            echo "running get-elasticsearch-versions-to-process..";
             get-elasticsearch-versions-to-process;;
         step6) 
+            echo "running get-elasticsearch-versions-to-process | multiply-by-architecture..";
             get-elasticsearch-versions-to-process | multiply-by-architecture;;
         step7) 
+            echo "running get-elasticsearch-versions-to-process | multiply-by-architecture | filter-out-already-existing-custom-es-docker-images..";
             get-elasticsearch-versions-to-process | multiply-by-architecture | filter-out-already-existing-custom-es-docker-images;;
         *)
             echo "error: you must specify one of: [step1,step2,step3,step4,step5,step6,step7] for DEBUG environment variable. Exiting."
             exit 1;;
     esac
 else
+    echo "running get-elasticsearch-versions-to-process | multiply-by-architecture | filter-out-already-existing-custom-es-docker-images.."
     get-elasticsearch-versions-to-process |
         multiply-by-architecture |
         filter-out-already-existing-custom-es-docker-images |
