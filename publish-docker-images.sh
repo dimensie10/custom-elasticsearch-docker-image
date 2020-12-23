@@ -243,10 +243,13 @@ function publish-docker-image () {
 function publish-docker-images () {
     dryrun-filter-out-already-existing-custom-es-docker-images
     echo "running publish-docker-images.." >&4
-    cat - | while read VERSIONARCH ; do
+    cat - | tee $TMPFILE | while read VERSIONARCH ; do
         echo "running publish-docker-image for ${VERSIONARCH}.." >&4
         publish-docker-image "${CUSTOM_BASE_URL}:${VERSIONARCH}" "${UPSTREAM_BASE_URL}:${VERSIONARCH}" ;
     done
+    if [ ! -e $TMPFILE -o -z "$(cat $TMPFILE | perl -p -e 's#\s*##;')" ] ; then
+        echo "No docker images to process.."
+    fi
     return 0
 }
 
