@@ -125,8 +125,8 @@ function check_github_packages () {
 
 function check_amazon_ecr () {
     local VERSIONARCH="$1"
-    echo "running 'aws ecr describe-images --repository=${ECR_REPOSITORY_NAME:-elastic/elasticsearch} --image-ids=imageTag=${VERSIONARCH} 1>/dev/null 2>&1'.." >&4
-    if aws ecr describe-images --repository=${ECR_REPOSITORY_NAME:-elastic/elasticsearch} --image-ids=imageTag=${VERSIONARCH} 1>/dev/null 2>&1 ; then
+    echo "running 'aws --region ${ECR_AWS_REGION:-eu-west-1} ecr describe-images --repository=${ECR_REPOSITORY_NAME:-elastic/elasticsearch} --image-ids=imageTag=${VERSIONARCH} 1>/dev/null 2>&1'.." >&4
+    if aws --region ${ECR_AWS_REGION:-eu-west-1} ecr describe-images --repository=${ECR_REPOSITORY_NAME:-elastic/elasticsearch} --image-ids=imageTag=${VERSIONARCH} 1>/dev/null 2>&1 ; then
         return 1
     else
         return 0
@@ -170,10 +170,10 @@ function dryrun-filter-out-already-existing-custom-es-docker-images () {
                         echo "dryrun_enable_real_check: image ${VERSIONARCH} exists"
                     fi
                 fi
-                echo "running 'aws ecr describe-images --repository=${ECR_REPOSITORY_NAME:-elastic/elasticsearch} --image-ids=imageTag=${VERSIONARCH} | jq -r '.''.." >&4
-                aws ecr describe-images --repository=${ECR_REPOSITORY_NAME:-elastic/elasticsearch} --image-ids=imageTag=${VERSIONARCH} | jq -r '.'
-                echo "running 'aws ecr describe-images --repository=${ECR_REPOSITORY_NAME:-elastic/elasticsearch} | jq -r '.''.." >&4
-                aws ecr describe-images --repository=${ECR_REPOSITORY_NAME:-elastic/elasticsearch} | jq -r '.'
+                echo "running 'aws --region ${ECR_AWS_REGION:-eu-west-1} ecr describe-images --repository=${ECR_REPOSITORY_NAME:-elastic/elasticsearch} --image-ids=imageTag=${VERSIONARCH} | jq -r '.''.." >&4
+                aws --region ${ECR_AWS_REGION:-eu-west-1} ecr describe-images --repository=${ECR_REPOSITORY_NAME:-elastic/elasticsearch} --image-ids=imageTag=${VERSIONARCH} | jq -r '.'
+                echo "running 'aws --region ${ECR_AWS_REGION:-eu-west-1} ecr describe-images --repository=${ECR_REPOSITORY_NAME:-elastic/elasticsearch} | jq -r '.''.." >&4
+                aws --region ${ECR_AWS_REGION:-eu-west-1} ecr describe-images --repository=${ECR_REPOSITORY_NAME:-elastic/elasticsearch} | jq -r '.'
             else
                 if dryrun_enable_real_check ; then
                     if check_github_packages ${VERSIONARCH} ; then
