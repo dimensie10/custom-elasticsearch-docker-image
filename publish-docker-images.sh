@@ -122,7 +122,11 @@ function check_github_packages () {
 function check_amazon_ecr () {
     local VERSIONARCH="$1"
     echo "running 'aws ecr describe-images --repository=${ECR_REPOSITORY_NAME:-elastic/elasticsearch} --image-ids=imageTag=${VERSIONARCH} 1>/dev/null 2>&1'.." >&4
-    ! aws ecr describe-images --repository=${ECR_REPOSITORY_NAME:-elastic/elasticsearch} --image-ids=imageTag=${VERSIONARCH} 1>/dev/null 2>&1
+    if aws ecr describe-images --repository=${ECR_REPOSITORY_NAME:-elastic/elasticsearch} --image-ids=imageTag=${VERSIONARCH} 1>/dev/null 2>&1 ; then
+        return 1
+    else
+        return 0
+    fi
 }
 
 function filter-out-already-existing-custom-es-docker-images () {
