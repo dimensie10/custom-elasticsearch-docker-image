@@ -59,6 +59,7 @@ Environment variable | Default | Source
 `DEBUG` | *undefined* | `secrets.DEBUG`
 `DRYRUN` | *undefined* | `secrets.DRYRUN`
 `DRYRUN_ASSUME_EXISTING` | *undefined* | `secrets.DRYRUN_ASSUME_EXISTING`
+`DRYRUN_ENABLE_REAL_CHECK` | *undefined* | `secrets.DRYRUN_ENABLE_REAL_CHECK`
 `VERBOSE` | *undefined* | `secrets.VERBOSE`
 `CUSTOM_BASE_URL_OVERRIDE` | *undefined* | `secrets.CUSTOM_BASE_URL_OVERRIDE`
 `EXTERNAL_LOGIN` | *undefined* | `secrets.EXTERNAL_LOGIN`
@@ -202,4 +203,10 @@ It will also show the `Dockerfile` that was generated. By default it will assume
 
 ```
 DRYRUN_ASSUME_EXISTING=true
+```
+
+While doing a dryrun, you can enable actual checking of existence of the docker images by setting:
+
+```
+DRYRUN_ENABLE_REAL_CHECK=true
 ```

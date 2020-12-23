@@ -37,6 +37,7 @@ jobs:
           DEBUG: ${{ secrets.DEBUG }}
           DRYRUN: ${{ secrets.DRYRUN }}
           DRYRUN_ASSUME_EXISTING: ${{ secrets.DRYRUN_ASSUME_EXISTING }}
+          DRYRUN_ENABLE_REAL_CHECK: ${{ secrets.DRYRUN_ENABLE_REAL_CHECK }}
           VERBOSE: ${{ secrets.VERBOSE }}
           CUSTOM_BASE_URL_OVERRIDE: ${{ secrets.CUSTOM_BASE_URL_OVERRIDE }}
           EXTERNAL_LOGIN: ${{ secrets.EXTERNAL_LOGIN }}

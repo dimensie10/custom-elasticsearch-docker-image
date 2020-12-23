@@ -32,6 +32,10 @@ function dryrun_assume_existing () {
     [ -n "$DRYRUN_ASSUME_EXISTING" -a "$DRYRUN_ASSUME_EXISTING" = "true" ]
 }
 
+function dryrun_enable_real_check () {
+    [ -n "$DRYRUN_ENABLE_REAL_CHECK" -a "$DRYRUN_ENABLE_REAL_CHECK" = "true" ]
+}
+
 function execute_exclude_filter () {
     if [ "$EXCLUDE_FILTER" != "disabled" ]; then
         cat - | grep -v -E -e "${EXCLUDE_FILTER}"
@@ -150,11 +154,34 @@ function dryrun-filter-out-already-existing-custom-es-docker-images () {
     if is_dryrun_mode ; then
         cat - | while read VERSIONARCH ; do
             if is_custom_base_url_overridden ; then
+                if dryrun_enable_real_check ; then
+                    if custom_docker_image_existence_check ${VERSIONARCH} ; then
+                        echo "dryrun_enable_real_check: image ${VERSIONARCH} does not exist"
+                    else
+                        echo "dryrun_enable_real_check: image ${VERSIONARCH} exists"
+                    fi
+                fi
                 custom_docker_image_existence_check --dryrun ${VERSIONARCH}
             elif use_amazon_ecr ; then
+                if dryrun_enable_real_check ; then
+                    if check_amazon_ecr ${VERSIONARCH} ; then
+                        echo "dryrun_enable_real_check: image ${VERSIONARCH} does not exist"
+                    else
+                        echo "dryrun_enable_real_check: image ${VERSIONARCH} exists"
+                    fi
+                fi
                 echo "running 'aws ecr describe-images --repository=${ECR_REPOSITORY_NAME:-elastic/elasticsearch} --image-ids=imageTag=${VERSIONARCH} | jq -r '.''.." >&4
                 aws ecr describe-images --repository=${ECR_REPOSITORY_NAME:-elastic/elasticsearch} --image-ids=imageTag=${VERSIONARCH} | jq -r '.'
+                echo "running 'aws ecr describe-images --repository=${ECR_REPOSITORY_NAME:-elastic/elasticsearch} | jq -r '.''.." >&4
+                aws ecr describe-images --repository=${ECR_REPOSITORY_NAME:-elastic/elasticsearch} | jq -r '.'
             else
+                if dryrun_enable_real_check ; then
+                    if check_github_packages ${VERSIONARCH} ; then
+                        echo "dryrun_enable_real_check: image ${VERSIONARCH} does not exist"
+                    else
+                        echo "dryrun_enable_real_check: image ${VERSIONARCH} exists"
+                    fi
+                fi
                 echo "running 'curl --show-error -s -X GET https://docker.pkg.github.com/v2/${GITHUB_REPOSITORY}/elasticsearch/manifests/${VERSIONARCH} -u $GITHUB_ACTOR:$GITHUB_TOKEN | jq -r '.''.." >&4
                 curl --show-error -s -X GET https://docker.pkg.github.com/v2/${GITHUB_REPOSITORY}/elasticsearch/manifests/${VERSIONARCH} -u $GITHUB_ACTOR:$GITHUB_TOKEN | jq -r '.'
             fi
